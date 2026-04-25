@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baby.data.AppDatabase
+import com.example.baby.data.DeletedSyncId
 import com.example.baby.data.FeedingRecord
 import com.example.baby.util.DateUtils
 import kotlinx.coroutines.flow.*
@@ -48,6 +49,10 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
 
     fun deleteRecord(record: FeedingRecord) {
         viewModelScope.launch {
+            // Track the syncId so sync can propagate the deletion
+            if (record.syncId != null) {
+                dao.insertDeletedSyncId(DeletedSyncId(syncId = record.syncId))
+            }
             dao.deleteById(record.id)
             _uiState.update { it.copy(deletedMessage = "已删除一条记录") }
         }

@@ -33,6 +33,8 @@ class SyncManager(private val dao: com.example.baby.data.FeedingDao) {
             }
         }
 
+        val deletedSyncIds = dao.getAllDeletedSyncIds()
+
         return JSONObject().apply {
             put("formatVersion", formatVersion)
             put("exportedAt", System.currentTimeMillis())
@@ -47,6 +49,7 @@ class SyncManager(private val dao: com.example.baby.data.FeedingDao) {
                     })
                 }
             })
+            put("deletedSyncIds", JSONArray(deletedSyncIds))
         }.toString()
     }
 
@@ -59,14 +62,27 @@ class SyncManager(private val dao: com.example.baby.data.FeedingDao) {
 
         val recordsArray = root.getJSONArray("records")
         val existingSyncIds = dao.getAllSyncIds().toHashSet()
+        val localDeletedSyncIds = dao.getAllDeletedSyncIds().toHashSet()
         var imported = 0
         var skipped = 0
+
+        // Process deleted syncIds from peer: remove matching local records
+        if (root.has("deletedSyncIds")) {
+            val deletedArray = root.getJSONArray("deletedSyncIds")
+            for (i in 0 until deletedArray.length()) {
+                val syncId = deletedArray.optString(i, "")
+                if (syncId.isNotEmpty() && syncId in existingSyncIds) {
+                    dao.deleteBySyncId(syncId)
+                }
+            }
+        }
 
         for (i in 0 until recordsArray.length()) {
             val obj = recordsArray.getJSONObject(i)
             val syncId = if (obj.has("syncId")) obj.getString("syncId") else continue
 
-            if (syncId in existingSyncIds) {
+            // Skip if already present locally OR was previously deleted locally
+            if (syncId in existingSyncIds || syncId in localDeletedSyncIds) {
                 skipped++
                 continue
             }

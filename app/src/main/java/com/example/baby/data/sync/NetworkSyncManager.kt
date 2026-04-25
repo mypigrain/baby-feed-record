@@ -29,7 +29,8 @@ class NetworkSyncManager(
     data class SyncExchangeResult(
         val imported: Int,
         val skipped: Int,
-        val peerRecords: String?
+        val peerRecords: String?,
+        val peerDeletedSyncIds: String?
     )
 
     fun startServer(): Int {
@@ -187,7 +188,8 @@ class NetworkSyncManager(
                 SyncExchangeResult(
                     imported = obj.optInt("imported", 0),
                     skipped = obj.optInt("skipped", 0),
-                    peerRecords = if (obj.has("records")) obj.getString("records") else null
+                    peerRecords = if (obj.has("records")) obj.getString("records") else null,
+                    peerDeletedSyncIds = if (obj.has("deletedSyncIds")) obj.getString("deletedSyncIds") else null
                 )
             } else {
                 null

@@ -47,8 +47,9 @@
 1. 应用在前台时，每 30 秒通过 UDP 广播发现同一 WiFi 下的其他设备
 2. 发现设备后自动建立 TCP 连接，交换新增的喂养记录
 3. 通过 `syncId`（UUID）进行去重，确保数据不会重复
-4. 同步完成后通过 Room Flow 自动刷新 UI
-5. 应用进入后台后自动停止同步以省电
+4. 删除记录时将 syncId 存入 `deleted_sync_ids` 表，同步时传递删除列表，对端据此删除对应记录
+5. 同步完成后通过 Room Flow 自动刷新 UI
+6. 应用进入后台后自动停止同步以省电
 
 全程静默运行，无需任何手动操作。
 
@@ -78,6 +79,7 @@ app/src/main/java/com/example/baby/
 ├── MainActivity.kt         # 唯一 Activity
 ├── data/
 │   ├── FeedingRecord.kt    # Room 实体
+│   ├── DeletedSyncId.kt    # 删除同步追踪实体
 │   ├── FeedingDao.kt       # 数据访问层
 │   ├── AppDatabase.kt      # 数据库定义 + 迁移
 │   └── sync/               # WiFi 自动同步

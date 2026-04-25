@@ -101,24 +101,31 @@ class SyncCoordinator(
     }
 
     private suspend fun syncWithPeer(peer: DiscoveredPeer) {
-        // Export our records
+        // Export our records (includes deleted sync IDs)
         val localJson = syncManager.exportRecords()
+        val localObj = JSONObject(localJson)
 
-        // Build sync payload: include local records and let peer know our server port
+        // Build sync payload
         val payload = JSONObject().apply {
             put("type", "sync")
             put("port", serverPort)
             put("deviceName", "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
-            put("records", JSONObject(localJson).getJSONArray("records"))
+            put("records", localObj.getJSONArray("records"))
+            if (localObj.has("deletedSyncIds")) {
+                put("deletedSyncIds", localObj.getJSONArray("deletedSyncIds"))
+            }
         }.toString()
 
         // Connect to peer and exchange
         val result = networkManager.syncWithPeer(peer.ip, peer.port, payload)
         if (result != null && result.peerRecords != null) {
-            // Import peer's records
+            // Build import payload with peer's records AND deleted sync IDs
             val peerPayload = JSONObject().apply {
                 put("formatVersion", 1)
                 put("records", JSONArray(result.peerRecords))
+                if (result.peerDeletedSyncIds != null) {
+                    put("deletedSyncIds", JSONArray(result.peerDeletedSyncIds))
+                }
             }.toString()
 
             val syncResult = syncManager.importRecords(peerPayload)
@@ -136,22 +143,30 @@ class SyncCoordinator(
             kotlinx.coroutines.runBlocking {
                 // Export our records BEFORE importing (to send only pre-existing records)
                 val ourRecords = syncManager.exportRecords()
+                val ourObj = JSONObject(ourRecords)
 
                 // Import peer's records
                 val root = JSONObject(remoteJson)
                 val peerRecords = root.optJSONArray("records")
+                val peerDeleted = root.optJSONArray("deletedSyncIds")
                 val payload = JSONObject().apply {
                     put("formatVersion", 1)
                     put("records", peerRecords)
+                    if (peerDeleted != null) {
+                        put("deletedSyncIds", peerDeleted)
+                    }
                 }.toString()
                 val syncResult = syncManager.importRecords(payload)
 
-                // Send response with our records (from before import)
+                // Send response with our records + deleted sync IDs (from before import)
                 val response = JSONObject().apply {
                     put("type", "sync_response")
                     put("imported", syncResult.imported)
                     put("skipped", syncResult.skipped)
-                    put("records", JSONObject(ourRecords).getJSONArray("records"))
+                    put("records", ourObj.getJSONArray("records"))
+                    if (ourObj.has("deletedSyncIds")) {
+                        put("deletedSyncIds", ourObj.getJSONArray("deletedSyncIds"))
+                    }
                 }.toString()
 
                 writer.println(response)

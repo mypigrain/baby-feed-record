@@ -33,6 +33,9 @@ interface FeedingDao {
     @Query("DELETE FROM feeding_records WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+    @Query("DELETE FROM feeding_records WHERE sync_id = :syncId")
+    suspend fun deleteBySyncId(syncId: String)
+
     @Query("SELECT sync_id FROM feeding_records WHERE sync_id IS NOT NULL")
     suspend fun getAllSyncIds(): List<String>
 
@@ -44,4 +47,14 @@ interface FeedingDao {
 
     @Query("SELECT * FROM feeding_records WHERE timestamp > :since ORDER BY timestamp ASC")
     suspend fun getRecordsSince(since: Long): List<FeedingRecord>
+
+    // Deleted sync ID tracking
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertDeletedSyncId(deletedSyncId: DeletedSyncId)
+
+    @Query("SELECT syncId FROM deleted_sync_ids")
+    suspend fun getAllDeletedSyncIds(): List<String>
+
+    @Query("DELETE FROM deleted_sync_ids WHERE syncId IN (:syncIds)")
+    suspend fun clearDeletedSyncIds(syncIds: List<String>)
 }
