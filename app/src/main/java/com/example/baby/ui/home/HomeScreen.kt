@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -200,6 +201,22 @@ private fun TodaySummary(
                 Spacer(modifier = Modifier.height(6.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(modifier = Modifier.height(6.dp))
+
+                // Elapsed time since last feeding (auto-refreshing)
+                var elapsedText by remember { mutableStateOf("") }
+                LaunchedEffect(lastRecord) {
+                    while (true) {
+                        val diff = System.currentTimeMillis() - lastRecord.timestamp
+                        val totalMinutes = (diff / 60000).toInt()
+                        elapsedText = if (totalMinutes < 60) {
+                            "${totalMinutes}分钟"
+                        } else {
+                            "${totalMinutes / 60}小时${totalMinutes % 60}分钟"
+                        }
+                        delay(30_000L)
+                    }
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -222,6 +239,27 @@ private fun TodaySummary(
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
+                }
+
+                if (elapsedText.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "距离上次",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            elapsedText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
