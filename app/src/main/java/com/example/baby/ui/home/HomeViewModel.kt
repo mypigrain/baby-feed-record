@@ -35,7 +35,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-        refreshToday()
+        viewModelScope.launch {
+            dao.getAllDesc().collect { allRecords ->
+                val now = System.currentTimeMillis()
+                val dayStart = DateUtils.getDayStart(now)
+                val dayEnd = DateUtils.getDayEnd(now)
+                val todayRecords = allRecords.filter {
+                    it.timestamp >= dayStart && it.timestamp < dayEnd
+                }
+                _uiState.update {
+                    it.copy(
+                        todayCount = todayRecords.size,
+                        todayTotalMl = todayRecords.sumOf { it.amountMl ?: 0 },
+                        lastRecord = allRecords.firstOrNull()
+                    )
+                }
+            }
+        }
     }
 
     private fun loadLastAmount(): Int? {
@@ -45,22 +61,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun loadLastType(): String {
         return prefs.getString("last_type", "breast") ?: "breast"
-    }
-
-    fun refreshToday() {
-        viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            val dayStart = DateUtils.getDayStart(now)
-            val dayEnd = DateUtils.getDayEnd(now)
-
-            val count = dao.getCountForDay(dayStart, dayEnd)
-            val totalMl = dao.getTotalAmountForDay(dayStart, dayEnd) ?: 0
-            val last = dao.getLastRecord()
-
-            _uiState.update {
-                it.copy(todayCount = count, todayTotalMl = totalMl, lastRecord = last)
-            }
-        }
     }
 
     fun selectAmount(amount: Int?) {
@@ -95,8 +95,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     lastConfirmationMessage = message
                 )
             }
-
-            refreshToday()
         }
     }
 

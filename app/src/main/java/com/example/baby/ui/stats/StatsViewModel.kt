@@ -46,17 +46,11 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
 
     init {
-        loadStats()
-    }
-
-    fun loadStats() {
         viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            val todayStart = DateUtils.getDayStart(now)
-            val todayEnd = DateUtils.getDayEnd(now)
-
-            // Get all records for stats calculation
-            dao.getAllDesc().first().let { allRecords ->
+            dao.getAllDesc().collect { allRecords ->
+                val now = System.currentTimeMillis()
+                val todayStart = DateUtils.getDayStart(now)
+                val todayEnd = DateUtils.getDayEnd(now)
                 computeStats(allRecords, todayStart, todayEnd)
             }
         }
