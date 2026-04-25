@@ -1,7 +1,7 @@
 package com.example.baby.ui.navigation
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
@@ -50,9 +50,6 @@ fun AppNavigation() {
                         selected = selected,
                         onClick = {
                             navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -68,27 +65,27 @@ fun AppNavigation() {
             modifier = Modifier.padding(innerPadding),
             enterTransition = {
                 slideInHorizontally(
-                    animationSpec = tween(300),
+                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
                     initialOffsetX = { it / 3 }
-                ) + fadeIn(tween(200))
+                ) + fadeIn(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f))
             },
             exitTransition = {
                 slideOutHorizontally(
-                    animationSpec = tween(200),
+                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
                     targetOffsetX = { -it / 3 }
-                ) + fadeOut(tween(150))
+                ) + fadeOut(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f))
             },
             popEnterTransition = {
                 slideInHorizontally(
-                    animationSpec = tween(300),
+                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
                     initialOffsetX = { -it / 3 }
-                ) + fadeIn(tween(200))
+                ) + fadeIn(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f))
             },
             popExitTransition = {
                 slideOutHorizontally(
-                    animationSpec = tween(200),
+                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
                     targetOffsetX = { it / 3 }
-                ) + fadeOut(tween(150))
+                ) + fadeOut(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f))
             }
         ) {
             composable(Screen.Home.route) {
