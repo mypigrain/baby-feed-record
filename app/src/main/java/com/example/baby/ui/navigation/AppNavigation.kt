@@ -18,6 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.baby.ui.donate.DonateScreen
 import com.example.baby.ui.history.HistoryScreen
 import com.example.baby.ui.home.HomeScreen
 import com.example.baby.ui.stats.StatsScreen
@@ -104,7 +105,14 @@ fun AppNavigation() {
             }
         ) {
             composable(Screen.Home.route) {
-                HomeScreen()
+                HomeScreen(
+                    onNavigateToDonate = { navController.navigate("donate") }
+                )
+            }
+            composable("donate") {
+                DonateScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(Screen.History.route) {
                 HistoryScreen(
