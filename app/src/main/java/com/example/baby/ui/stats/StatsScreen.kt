@@ -51,20 +51,20 @@ fun StatsScreen(
         ) {
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Weekly summary cards
+            // Daily summary cards
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 SummaryCard(
-                    title = "本周总量",
-                    value = "${uiState.weeklyTotalMl} ml",
+                    title = "今日总量",
+                    value = "${uiState.dailyTotalMl} ml",
                     modifier = Modifier.weight(1f),
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
                 SummaryCard(
-                    title = "本周次数",
-                    value = "${uiState.weeklyTotalCount} 次",
+                    title = "今日次数",
+                    value = "${uiState.dailyCount} 次",
                     modifier = Modifier.weight(1f),
                     containerColor = MaterialTheme.colorScheme.secondaryContainer
                 )
@@ -74,7 +74,7 @@ fun StatsScreen(
 
             // Daily bar chart
             Text(
-                "每日喂养量",
+                "最近7天喂养量",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -90,7 +90,7 @@ fun StatsScreen(
 
             // Type distribution
             Text(
-                "喂养类型分布",
+                "今日喂养类型分布",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -104,15 +104,15 @@ fun StatsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Weekly trend
+            // Daily trend
             Text(
-                "历史趋势",
+                "最近7天明细",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
-            WeeklyTrendList(
-                summaries = uiState.weeklySummaries,
+            DailyTrendList(
+                summaries = uiState.dailySummaries,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -319,8 +319,8 @@ private fun LegendItem(label: String, count: Int, total: Int, color: Color) {
 }
 
 @Composable
-private fun WeeklyTrendList(
-    summaries: List<WeeklySummary>,
+private fun DailyTrendList(
+    summaries: List<DailySummary>,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -340,7 +340,7 @@ private fun WeeklyTrendList(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        summary.weekLabel,
+                        summary.dayLabel,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
                     )

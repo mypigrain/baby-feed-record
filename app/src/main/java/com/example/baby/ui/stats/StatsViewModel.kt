@@ -24,18 +24,18 @@ data class TypeDistribution(
     val mixed: Int = 0
 )
 
-data class WeeklySummary(
-    val weekLabel: String,
+data class DailySummary(
+    val dayLabel: String,
     val totalMl: Int,
     val totalCount: Int
 )
 
 data class StatsUiState(
-    val weeklyTotalMl: Int = 0,
-    val weeklyTotalCount: Int = 0,
+    val dailyTotalMl: Int = 0,
+    val dailyCount: Int = 0,
     val dailyAmounts: List<DailyAmount> = emptyList(),
     val typeDistribution: TypeDistribution = TypeDistribution(),
-    val weeklySummaries: List<WeeklySummary> = emptyList()
+    val dailySummaries: List<DailySummary> = emptyList()
 )
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
@@ -51,71 +51,66 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadStats() {
         viewModelScope.launch {
-            val weekStart = DateUtils.getWeekStart()
-            val weekEnd = DateUtils.getWeekEnd()
+            val now = System.currentTimeMillis()
+            val todayStart = DateUtils.getDayStart(now)
+            val todayEnd = DateUtils.getDayEnd(now)
 
-            // Collect all records for this week
-            dao.getRecordsForWeek(weekStart, weekEnd).collect { records ->
-                computeStats(records, weekStart)
+            // Get all records for stats calculation
+            dao.getAllDesc().first().let { allRecords ->
+                computeStats(allRecords, todayStart, todayEnd)
             }
         }
     }
 
-    private suspend fun computeStats(weekRecords: List<FeedingRecord>, weekStart: Long) {
-        val weeklyTotalMl = weekRecords.sumOf { it.amountMl ?: 0 }
-        val weeklyTotalCount = weekRecords.size
+    private fun computeStats(allRecords: List<FeedingRecord>, todayStart: Long, todayEnd: Long) {
+        // Today's data
+        val todayRecords = allRecords.filter {
+            it.timestamp >= todayStart && it.timestamp < todayEnd
+        }
+        val dailyTotalMl = todayRecords.sumOf { it.amountMl ?: 0 }
+        val dailyCount = todayRecords.size
 
-        // Daily breakdown
-        val dailyAmounts = (0..6).map { dayOffset ->
-            val dayStart = weekStart + dayOffset * 86400000L
+        // Last 7 days daily breakdown (including today)
+        val dailyAmounts = (6 downTo 0).map { dayOffset ->
+            val dayStart = todayStart - dayOffset * 86400000L
             val dayEnd = dayStart + 86400000L
-            val dayRecords = weekRecords.filter {
+            val dayRecords = allRecords.filter {
                 it.timestamp >= dayStart && it.timestamp < dayEnd
             }
             DailyAmount(
                 dayLabel = when (dayOffset) {
-                    0 -> "一"
-                    1 -> "二"
-                    2 -> "三"
-                    3 -> "四"
-                    4 -> "五"
-                    5 -> "六"
-                    6 -> "日"
-                    else -> ""
+                    0 -> "今天"
+                    1 -> "昨天"
+                    else -> com.example.baby.util.DateUtils.formatDate(dayStart).substring(2)
                 },
                 totalMl = dayRecords.sumOf { it.amountMl ?: 0 },
                 count = dayRecords.size
             )
         }
 
-        // Type distribution for this week
+        // Type distribution for today
         val typeDist = TypeDistribution(
-            breast = weekRecords.count { it.type == "breast" },
-            formula = weekRecords.count { it.type == "formula" },
-            mixed = weekRecords.count { it.type == "mixed" }
+            breast = todayRecords.count { it.type == "breast" },
+            formula = todayRecords.count { it.type == "formula" },
+            mixed = todayRecords.count { it.type == "mixed" }
         )
 
-        // Weekly summaries (last 4 weeks)
-        val weeklySummaries = (0 until 4).map { weekOffset ->
-            val ws = weekStart - weekOffset * 7 * 86400000L
-            val we = ws + 7 * 86400000L
-            val records = dao.getRecordsForWeek(ws, we).first()
-            val date = LocalDate.ofInstant(Instant.ofEpochMilli(ws), ZoneId.systemDefault())
-            val weekOfYear = date.get(java.time.temporal.WeekFields.of(java.util.Locale.getDefault()).weekOfYear())
-            WeeklySummary(
-                weekLabel = "第${weekOfYear}周",
-                totalMl = records.sumOf { it.amountMl ?: 0 },
-                totalCount = records.size
+        // Daily summaries (last 7 days for history list)
+        val dailySummaries = dailyAmounts.map { day ->
+            DailySummary(
+                dayLabel = day.dayLabel,
+                totalMl = day.totalMl,
+                totalCount = day.count
             )
         }
 
         _uiState.update {
             StatsUiState(
-                weeklyTotalMl = weeklyTotalMl,
-                weeklyTotalCount = weeklyTotalCount,
+                dailyTotalMl = dailyTotalMl,
+                dailyCount = dailyCount,
                 dailyAmounts = dailyAmounts,
                 typeDistribution = typeDist,
-                weeklySummaries = weeklySummaries
+                dailySummaries = dailySummaries
             )
         }
     }

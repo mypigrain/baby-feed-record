@@ -1,5 +1,7 @@
 package com.example.baby.ui.navigation
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
@@ -63,7 +65,31 @@ fun AppNavigation() {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+            enterTransition = {
+                slideInHorizontally(
+                    animationSpec = tween(300),
+                    initialOffsetX = { it / 3 }
+                ) + fadeIn(tween(200))
+            },
+            exitTransition = {
+                slideOutHorizontally(
+                    animationSpec = tween(200),
+                    targetOffsetX = { -it / 3 }
+                ) + fadeOut(tween(150))
+            },
+            popEnterTransition = {
+                slideInHorizontally(
+                    animationSpec = tween(300),
+                    initialOffsetX = { -it / 3 }
+                ) + fadeIn(tween(200))
+            },
+            popExitTransition = {
+                slideOutHorizontally(
+                    animationSpec = tween(200),
+                    targetOffsetX = { it / 3 }
+                ) + fadeOut(tween(150))
+            }
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(

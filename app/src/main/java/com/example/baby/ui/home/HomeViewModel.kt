@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 
 data class HomeUiState(
     val todayCount: Int = 0,
+    val todayTotalMl: Int = 0,
     val lastRecord: FeedingRecord? = null,
     val selectedAmount: Int? = null,
     val selectedType: String = "breast",
@@ -37,10 +38,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val dayEnd = DateUtils.getDayEnd(now)
 
             val count = dao.getCountForDay(dayStart, dayEnd)
+            val totalMl = dao.getTotalAmountForDay(dayStart, dayEnd) ?: 0
             val last = dao.getLastRecord()
 
             _uiState.update {
-                it.copy(todayCount = count, lastRecord = last)
+                it.copy(todayCount = count, todayTotalMl = totalMl, lastRecord = last)
             }
         }
     }
