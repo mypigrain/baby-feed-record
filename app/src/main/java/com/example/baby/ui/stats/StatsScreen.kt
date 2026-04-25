@@ -13,13 +13,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.graphics.Paint
+import android.graphics.Rect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -189,6 +193,13 @@ private fun BarChart(
                     val barWidth = (totalWidth / barCount) * 0.5f
                     val gap = (totalWidth / barCount) * 0.5f
 
+                    val textPaint = Paint().apply {
+                        color = primaryColor.toArgb()
+                        textSize = 32f
+                        textAlign = Paint.Align.CENTER
+                    }
+
+                    val nativeCanvas = drawContext.canvas.nativeCanvas
                     dailyAmounts.forEachIndexed { index, day ->
                         val barHeight = if (day.totalMl > 0) {
                             (day.totalMl.toFloat() / maxMl) * (totalHeight - 30f)
@@ -204,10 +215,20 @@ private fun BarChart(
                             topLeft = Offset(x, y),
                             size = Size(barWidth, barHeight)
                         )
+
+                        // Draw ml value above bar
+                        if (day.totalMl > 0) {
+                            nativeCanvas.drawText(
+                                "${day.totalMl}",
+                                x + barWidth / 2,
+                                y - 4f,
+                                textPaint
+                            )
+                        }
                     }
                 }
 
-                // Values and day labels
+                // Day labels
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -216,23 +237,13 @@ private fun BarChart(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     dailyAmounts.forEach { day ->
-                        Column(
+                        Text(
+                            day.dayLabel,
                             modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text(
-                                day.dayLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                if (day.totalMl > 0) "${day.totalMl}ml" else "-",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (day.totalMl > 0) primaryColor else Color.Gray.copy(alpha = 0.5f),
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }

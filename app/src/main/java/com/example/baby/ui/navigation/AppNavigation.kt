@@ -2,6 +2,7 @@ package com.example.baby.ui.navigation
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
@@ -40,6 +41,9 @@ fun AppNavigation() {
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
 
+    // Track navigation direction for animations
+    var forwardNavigation by remember { mutableStateOf(true) }
+
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -50,7 +54,15 @@ fun AppNavigation() {
                         label = { Text(screen.label) },
                         selected = selected,
                         onClick = {
+                            // Determine animation direction based on tab order
+                            val targetIndex = bottomNavItems.indexOfFirst { it.route == screen.route }
+                            val currentIndex = bottomNavItems.indexOfFirst { it.route == currentRoute }
+                            forwardNavigation = targetIndex >= currentIndex
+
                             navController.navigate(screen.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -63,11 +75,38 @@ fun AppNavigation() {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = innerPadding.calculateBottomPadding()),
+            enterTransition = {
+                slideInHorizontally(
+                    animationSpec = spring(dampingRatio = 0.85f, stiffness = 400f),
+                    initialOffsetX = { if (forwardNavigation) it else -it }
+                )
+            },
+            exitTransition = {
+                slideOutHorizontally(
+                    animationSpec = spring(dampingRatio = 0.85f, stiffness = 400f),
+                    targetOffsetX = { if (forwardNavigation) -it else it }
+                )
+            },
+            popEnterTransition = {
+                slideInHorizontally(
+                    animationSpec = spring(dampingRatio = 0.85f, stiffness = 400f),
+                    initialOffsetX = { -it }
+                )
+            },
+            popExitTransition = {
+                slideOutHorizontally(
+                    animationSpec = spring(dampingRatio = 0.85f, stiffness = 400f),
+                    targetOffsetX = { it }
+                )
+            }
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNavigateToHistory = {
+                        forwardNavigation = true
                         navController.navigate(Screen.History.route) {
                             launchSingleTop = true
                         }
