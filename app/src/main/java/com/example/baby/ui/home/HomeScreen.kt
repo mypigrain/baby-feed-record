@@ -25,7 +25,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToHistory: () -> Unit,
     viewModel: HomeViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -143,17 +142,7 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Bottom: navigate to history
-            OutlinedButton(
-                onClick = onNavigateToHistory,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("查看全部记录 →")
-            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

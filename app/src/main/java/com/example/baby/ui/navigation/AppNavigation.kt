@@ -104,14 +104,7 @@ fun AppNavigation() {
             }
         ) {
             composable(Screen.Home.route) {
-                HomeScreen(
-                    onNavigateToHistory = {
-                        forwardNavigation = true
-                        navController.navigate(Screen.History.route) {
-                            launchSingleTop = true
-                        }
-                    }
-                )
+                HomeScreen()
             }
             composable(Screen.History.route) {
                 HistoryScreen(

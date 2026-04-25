@@ -1,6 +1,7 @@
 package com.example.baby.ui.home
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.baby.data.AppDatabase
@@ -23,12 +24,27 @@ data class HomeUiState(
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val dao = AppDatabase.getInstance(application).feedingDao()
+    private val prefs = application.getSharedPreferences("home_prefs", Context.MODE_PRIVATE)
 
-    private val _uiState = MutableStateFlow(HomeUiState())
+    private val _uiState = MutableStateFlow(
+        HomeUiState(
+            selectedAmount = loadLastAmount(),
+            selectedType = loadLastType()
+        )
+    )
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
         refreshToday()
+    }
+
+    private fun loadLastAmount(): Int? {
+        val value = prefs.getInt("last_amount", -1)
+        return if (value >= 0) value else null
+    }
+
+    private fun loadLastType(): String {
+        return prefs.getString("last_type", "breast") ?: "breast"
     }
 
     fun refreshToday() {
@@ -48,10 +64,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectAmount(amount: Int?) {
+        prefs.edit().putInt("last_amount", amount ?: -1).apply()
         _uiState.update { it.copy(selectedAmount = amount) }
     }
 
     fun selectType(type: String) {
+        prefs.edit().putString("last_type", type).apply()
         _uiState.update { it.copy(selectedType = type) }
     }
 
@@ -72,7 +90,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    selectedAmount = null,
                     showConfirmation = true,
                     lastConfirmationMessage = message
                 )
