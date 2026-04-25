@@ -79,6 +79,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
             val state = _uiState.value
             val record = FeedingRecord(
+                syncId = java.util.UUID.randomUUID().toString(),
                 timestamp = System.currentTimeMillis(),
                 amountMl = state.selectedAmount,
                 type = state.selectedType

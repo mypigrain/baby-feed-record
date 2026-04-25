@@ -9,6 +9,9 @@ data class FeedingRecord(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
+    @ColumnInfo(name = "sync_id")
+    val syncId: String? = null,
+
     @ColumnInfo(name = "timestamp")
     val timestamp: Long,
 

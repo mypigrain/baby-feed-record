@@ -32,4 +32,16 @@ interface FeedingDao {
 
     @Query("DELETE FROM feeding_records WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("SELECT sync_id FROM feeding_records WHERE sync_id IS NOT NULL")
+    suspend fun getAllSyncIds(): List<String>
+
+    @Query("SELECT * FROM feeding_records")
+    suspend fun getAllRecords(): List<FeedingRecord>
+
+    @Query("UPDATE feeding_records SET sync_id = :syncId WHERE id = :id")
+    suspend fun updateSyncId(id: Long, syncId: String)
+
+    @Query("SELECT * FROM feeding_records WHERE timestamp > :since ORDER BY timestamp ASC")
+    suspend fun getRecordsSince(since: Long): List<FeedingRecord>
 }
