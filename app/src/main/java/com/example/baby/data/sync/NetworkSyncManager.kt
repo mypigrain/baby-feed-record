@@ -23,6 +23,7 @@ class NetworkSyncManager(
     private val discoveryPort: Int = 56789
 ) {
     private var serverSocket: ServerSocket? = null
+    @Volatile
     private var running = false
 
     data class SyncExchangeResult(
@@ -64,15 +65,16 @@ class NetworkSyncManager(
 
     fun discoverPeers(timeoutMs: Int = 3000): List<DiscoveredPeer> {
         val peers = mutableListOf<DiscoveredPeer>()
-        val listenPort = 0
         val broadcastAddr = "255.255.255.255"
         val deviceName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
 
         try {
             val localIp = getLocalIpAddress() ?: return peers
 
-            val sendSocket = DatagramSocket()
-            sendSocket.broadcast = true
+            val socket = DatagramSocket().apply {
+                broadcast = true
+                soTimeout = timeoutMs
+            }
 
             val discoverMsg = JSONObject().apply {
                 put("type", "discover")
@@ -84,19 +86,14 @@ class NetworkSyncManager(
                 sendBuf, sendBuf.size,
                 InetAddress.getByName(broadcastAddr), discoveryPort
             )
-            sendSocket.send(sendPacket)
-            sendSocket.close()
-
-            val recvSocket = DatagramSocket(listenPort)
-            recvSocket.soTimeout = timeoutMs
-            recvSocket.broadcast = true
+            socket.send(sendPacket)
 
             val recvBuf = ByteArray(4096)
 
             while (true) {
                 try {
                     val packet = DatagramPacket(recvBuf, recvBuf.size)
-                    recvSocket.receive(packet)
+                    socket.receive(packet)
                     val json = String(packet.data, 0, packet.length, Charsets.UTF_8)
                     val obj = JSONObject(json)
                     val peerIp = packet.address.hostAddress ?: continue
@@ -114,7 +111,7 @@ class NetworkSyncManager(
                     break
                 }
             }
-            recvSocket.close()
+            socket.close()
         } catch (_: Exception) {}
 
         return peers.distinctBy { it.ip }
