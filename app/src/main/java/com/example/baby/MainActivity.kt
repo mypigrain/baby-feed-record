@@ -35,6 +35,5 @@ private fun SetStatusBarColor() {
         val window = (view.context as android.app.Activity).window
         window.statusBarColor = color.toArgb()
         window.navigationBarColor = color.toArgb()
-        WindowCompat.setDecorFitsSystemWindows(window, false)
     }
 }

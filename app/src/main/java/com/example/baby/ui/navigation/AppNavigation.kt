@@ -38,12 +38,13 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val currentRoute = currentDestination?.route
 
     Scaffold(
         bottomBar = {
             NavigationBar {
                 bottomNavItems.forEach { screen ->
-                    val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                    val selected = currentRoute == screen.route
                     NavigationBarItem(
                         icon = { Icon(screen.icon, contentDescription = screen.label) },
                         label = { Text(screen.label) },
@@ -62,31 +63,7 @@ fun AppNavigation() {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding),
-            enterTransition = {
-                slideInHorizontally(
-                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
-                    initialOffsetX = { it / 3 }
-                ) + fadeIn(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f))
-            },
-            exitTransition = {
-                slideOutHorizontally(
-                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
-                    targetOffsetX = { -it / 3 }
-                ) + fadeOut(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f))
-            },
-            popEnterTransition = {
-                slideInHorizontally(
-                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
-                    initialOffsetX = { -it / 3 }
-                ) + fadeIn(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f))
-            },
-            popExitTransition = {
-                slideOutHorizontally(
-                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
-                    targetOffsetX = { it / 3 }
-                ) + fadeOut(animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f))
-            }
+            modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(

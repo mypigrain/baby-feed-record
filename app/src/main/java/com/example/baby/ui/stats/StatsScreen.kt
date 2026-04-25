@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.coerceAtLeast
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -169,49 +170,70 @@ private fun BarChart(
         colors = CardDefaults.cardColors(containerColor = surfaceVariant.copy(alpha = 0.3f))
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Canvas(
+            // Bar chart with labels
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .padding(top = 8.dp, bottom = 4.dp)
+                    .height(160.dp)
             ) {
-                val barCount = dailyAmounts.size
-                if (barCount == 0) return@Canvas
-                val totalWidth = size.width
-                val totalHeight = size.height
-                val barWidth = (totalWidth / barCount) * 0.6f
-                val gap = (totalWidth / barCount) * 0.4f
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(top = 8.dp)
+                ) {
+                    val barCount = dailyAmounts.size
+                    if (barCount == 0) return@Canvas
+                    val totalWidth = size.width
+                    val totalHeight = size.height
+                    val barWidth = (totalWidth / barCount) * 0.5f
+                    val gap = (totalWidth / barCount) * 0.5f
 
-                dailyAmounts.forEachIndexed { index, day ->
-                    val barHeight = if (day.totalMl > 0) {
-                        (day.totalMl.toFloat() / maxMl) * (totalHeight - 20f)
-                    } else {
-                        2f
+                    dailyAmounts.forEachIndexed { index, day ->
+                        val barHeight = if (day.totalMl > 0) {
+                            (day.totalMl.toFloat() / maxMl) * (totalHeight - 30f)
+                        } else {
+                            2f
+                        }
+                        val x = index * (barWidth + gap) + gap / 2
+                        val y = totalHeight - barHeight
+
+                        // Draw bar
+                        drawRect(
+                            color = primaryColor,
+                            topLeft = Offset(x, y),
+                            size = Size(barWidth, barHeight)
+                        )
                     }
-                    val x = index * (barWidth + gap) + gap / 2
-                    val y = totalHeight - barHeight
-
-                    drawRect(
-                        color = primaryColor,
-                        topLeft = Offset(x, y),
-                        size = Size(barWidth, barHeight)
-                    )
                 }
-            }
 
-            // Day labels
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                dailyAmounts.forEach { day ->
-                    Text(
-                        day.dayLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f)
-                    )
+                // Values and day labels
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    dailyAmounts.forEach { day ->
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                day.dayLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                if (day.totalMl > 0) "${day.totalMl}ml" else "-",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (day.totalMl > 0) primaryColor else Color.Gray.copy(alpha = 0.5f),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         }
