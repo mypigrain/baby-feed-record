@@ -1,0 +1,231 @@
+package com.example.baby.ui.home
+
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
+    onNavigateToHistory: () -> Unit,
+    viewModel: HomeViewModel = viewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val haptic = LocalHapticFeedback.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.showConfirmation) {
+        if (uiState.showConfirmation) {
+            snackbarHostState.showSnackbar(
+                message = uiState.lastConfirmationMessage,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.clearConfirmation()
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "宝宝喝奶",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Today's summary card
+            TodaySummary(
+                todayCount = uiState.todayCount,
+                lastRecord = uiState.lastRecord
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Big record button
+            Button(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    viewModel.recordFeeding()
+                },
+                enabled = !uiState.isLoading,
+                modifier = Modifier.size(180.dp),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 8.dp,
+                    pressedElevation = 2.dp
+                )
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "🍼",
+                        fontSize = 48.sp
+                    )
+                    Text(
+                        "记录喝奶",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // Quick amount chips
+            Text(
+                "快速选量（可选）",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                listOf(30, 60, 90, 120).forEach { amount ->
+                    val isSelected = uiState.selectedAmount == amount
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            viewModel.selectAmount(if (isSelected) null else amount)
+                        },
+                        label = { Text("${amount}ml") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Type toggle
+            Text(
+                "喂养类型（可选）",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                listOf(
+                    "breast" to "母乳",
+                    "formula" to "配方奶",
+                    "mixed" to "混合"
+                ).forEach { (value, label) ->
+                    FilterChip(
+                        selected = uiState.selectedType == value,
+                        onClick = { viewModel.selectType(value) },
+                        label = { Text(label) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Bottom: navigate to history
+            OutlinedButton(
+                onClick = onNavigateToHistory,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("查看全部记录 →")
+            }
+        }
+    }
+}
+
+@Composable
+private fun TodaySummary(
+    todayCount: Int,
+    lastRecord: com.example.baby.data.FeedingRecord?
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "今日次数",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    "${todayCount}次",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            if (lastRecord != null) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "上次喂养",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    val timeStr = com.example.baby.util.DateUtils.formatTime(lastRecord.timestamp)
+                    val amountStr = lastRecord.amountMl?.let { " ${it}ml" } ?: ""
+                    val typeStr = when (lastRecord.type) {
+                        "formula" -> "配方"
+                        "mixed" -> "混合"
+                        else -> "母乳"
+                    }
+                    Text(
+                        "$timeStr  $typeStr$amountStr",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
+}
