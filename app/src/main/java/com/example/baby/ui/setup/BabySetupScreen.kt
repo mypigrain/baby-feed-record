@@ -1,6 +1,8 @@
 package com.example.baby.ui.setup
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -93,19 +95,32 @@ fun BabySetupScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = birthDateStr,
-                onValueChange = {},
-                label = { Text("出生日期") },
-                readOnly = true,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }) {
-                        Icon(Icons.Default.DateRange, contentDescription = "选择日期")
+            Surface(
+                onClick = { showDatePicker = true },
+                shape = RoundedCornerShape(4.dp),
+                color = Color.Transparent,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = birthDateStr,
+                    onValueChange = {},
+                    label = { Text("出生日期") },
+                    enabled = false,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    trailingIcon = {
+                        IconButton(onClick = { showDatePicker = true }) {
+                            Icon(Icons.Default.DateRange, contentDescription = "选择日期")
+                        }
                     }
-                }
-            )
+                )
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 

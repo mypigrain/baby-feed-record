@@ -26,4 +26,12 @@ object BabyProfileManager {
             .putString(KEY_BIRTH, birthDate)
             .apply()
     }
+
+    fun clearProfile(context: Context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .remove(KEY_NAME)
+            .remove(KEY_BIRTH)
+            .apply()
+    }
 }

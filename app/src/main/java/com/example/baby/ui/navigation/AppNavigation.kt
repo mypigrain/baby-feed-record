@@ -139,7 +139,11 @@ fun AppNavigation(
             }
             composable(Screen.Stats.route) {
                 StatsScreen(
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onResetProfile = {
+                        BabyProfileManager.clearProfile(context)
+                        showSetup = true
+                    }
                 )
             }
         }

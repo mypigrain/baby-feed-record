@@ -3,6 +3,7 @@ package com.example.baby.ui.stats
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.baby.data.BabyProfileManager
 import android.graphics.Paint
 import android.graphics.Rect
 
@@ -29,9 +31,12 @@ import android.graphics.Rect
 @Composable
 fun StatsScreen(
     onBack: () -> Unit,
+    onResetProfile: () -> Unit = {},
     viewModel: StatsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val profile = remember { BabyProfileManager.getProfile(context) }
 
     Scaffold(
         topBar = {
@@ -55,6 +60,41 @@ fun StatsScreen(
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(4.dp))
+
+            // Baby profile card
+            if (profile != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                profile.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "出生日期：${profile.birthDate}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        TextButton(onClick = onResetProfile) {
+                            Text("重新设置")
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
             // Daily summary cards
             Row(
