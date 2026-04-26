@@ -3,6 +3,7 @@ package com.example.baby.widget
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
@@ -22,6 +23,21 @@ class QuickRecordWidget : AppWidgetProvider() {
     }
 
     companion object {
+        /**
+         * Refresh all widget instances on the home screen.
+         */
+        fun refreshAllWidgets(context: Context) {
+            try {
+                val appWidgetManager = AppWidgetManager.getInstance(context)
+                val widgetIds = ComponentName(context, QuickRecordWidget::class.java).let {
+                    appWidgetManager.getAppWidgetIds(it)
+                }
+                for (id in widgetIds) {
+                    updateAppWidget(context, appWidgetManager, id)
+                }
+            } catch (_: Exception) {}
+        }
+
         fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_quick_record)
 
