@@ -18,33 +18,52 @@ data class HistoryGroup(
 
 data class HistoryUiState(
     val groups: List<HistoryGroup> = emptyList(),
-    val deletedMessage: String? = null
+    val deletedMessage: String? = null,
+    val selectedDateMillis: Long = System.currentTimeMillis()
 )
 
 class HistoryViewModel(application: Application) : AndroidViewModel(application) {
 
     private val dao = AppDatabase.getInstance(application).feedingDao()
 
+    private val _selectedDate = MutableStateFlow(System.currentTimeMillis())
+
     private val _uiState = MutableStateFlow(HistoryUiState())
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            dao.getAllDesc().collect { records ->
-                val groups = records
-                    .groupBy { DateUtils.getDayStart(it.timestamp) }
-                    .map { (dayStart, dayRecords) ->
+            combine(
+                dao.getAllDesc(),
+                _selectedDate
+            ) { records, selectedDate ->
+                Pair(records, selectedDate)
+            }.collect { (records, selectedDate) ->
+                val dayStart = DateUtils.getDayStart(selectedDate)
+                val dayEnd = DateUtils.getDayEnd(selectedDate)
+                val dayRecords = records.filter {
+                    it.timestamp >= dayStart && it.timestamp < dayEnd
+                }.sortedByDescending { it.timestamp }
+
+                val groups = if (dayRecords.isEmpty()) {
+                    emptyList()
+                } else {
+                    listOf(
                         HistoryGroup(
                             dayStart = dayStart,
                             dayLabel = DateUtils.getDayLabel(dayStart),
                             records = dayRecords
                         )
-                    }
-                    .sortedByDescending { it.dayStart }
+                    )
+                }
 
-                _uiState.update { it.copy(groups = groups) }
+                _uiState.update { it.copy(groups = groups, selectedDateMillis = selectedDate) }
             }
         }
+    }
+
+    fun selectDate(dateMillis: Long) {
+        _selectedDate.value = dateMillis
     }
 
     fun deleteRecord(record: FeedingRecord) {

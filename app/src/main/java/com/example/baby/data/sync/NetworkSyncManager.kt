@@ -143,6 +143,7 @@ class NetworkSyncManager(
             try {
                 val socket = DatagramSocket(discoveryPort)
                 socket.broadcast = true
+                socket.soTimeout = 3000
                 val buf = ByteArray(4096)
 
                 while (running) {
@@ -189,6 +190,8 @@ class NetworkSyncManager(
                             )
                             onPeerFound(discovered)
                         }
+                    } catch (_: java.net.SocketTimeoutException) {
+                        // Normal timeout to check running flag
                     } catch (_: Exception) {
                         if (!running) break
                     }

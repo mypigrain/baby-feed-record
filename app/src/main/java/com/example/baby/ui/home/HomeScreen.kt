@@ -55,7 +55,7 @@ fun HomeScreen(
                     val context = LocalContext.current
                     val profile = remember { BabyProfileManager.getProfile(context) }
                     Text(
-                        if (profile != null) "${profile.name} 喝奶" else "宝宝喝奶",
+                        if (profile != null) "${profile.name} 的喝奶记录" else "宝宝喝奶记录",
                         fontWeight = FontWeight.Bold
                     )
                 },

@@ -1,19 +1,20 @@
 package com.example.baby.ui.history
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.baby.data.FeedingRecord
 import com.example.baby.util.DateUtils
@@ -26,6 +27,10 @@ fun HistoryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = uiState.selectedDateMillis
+    )
 
     LaunchedEffect(uiState.deletedMessage) {
         uiState.deletedMessage?.let {
@@ -49,43 +54,97 @@ fun HistoryScreen(
             )
         }
     ) { padding ->
-        if (uiState.groups.isEmpty()) {
-            Box(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // Date selector
+            Surface(
+                onClick = { showDatePicker = true },
+                shape = RoundedCornerShape(4.dp),
+                color = Color.Transparent,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                Text(
-                    "还没有记录\n点击首页大按钮开始记录吧",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                OutlinedTextField(
+                    value = DateUtils.formatFullDate(uiState.selectedDateMillis),
+                    onValueChange = {},
+                    label = { Text("选择日期") },
+                    enabled = false,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    trailingIcon = {
+                        Icon(Icons.Default.DateRange, contentDescription = "选择日期")
+                    }
                 )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 12.dp)
-            ) {
-                uiState.groups.forEach { group ->
-                    item(key = "header_${group.dayStart}") {
-                        DateHeader(label = group.dayLabel)
-                    }
-                    items(
-                        items = group.records,
-                        key = { it.id }
-                    ) { record ->
-                        RecordRow(
-                            record = record,
-                            onDelete = { viewModel.deleteRecord(record) }
-                        )
-                    }
+
+            if (uiState.groups.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "该日期没有喝奶记录",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
                 }
-                item { Spacer(modifier = Modifier.height(12.dp)) }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp)
+                ) {
+                    uiState.groups.forEach { group ->
+                        item(key = "header_${group.dayStart}") {
+                            DateHeader(label = group.dayLabel)
+                        }
+                        items(
+                            items = group.records,
+                            key = { it.id }
+                        ) { record ->
+                            RecordRow(
+                                record = record,
+                                onDelete = { viewModel.deleteRecord(record) }
+                            )
+                        }
+                    }
+                    item { Spacer(modifier = Modifier.height(12.dp)) }
+                }
             }
+        }
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        viewModel.selectDate(millis)
+                    }
+                    showDatePicker = false
+                }) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("取消")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }

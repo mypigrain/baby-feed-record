@@ -8,7 +8,7 @@ import java.util.Locale
 object DateUtils {
 
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-    private val dateFormatter = DateTimeFormatter.ofPattern("M月d日")
+    private val dateFormatter = DateTimeFormatter.ofPattern("M/d")
     private val dayOfWeekFormatter = DateTimeFormatter.ofPattern("EEEE", Locale.CHINESE)
     private val fullDateFormatter = DateTimeFormatter.ofPattern("yyyy年M月d日")
 

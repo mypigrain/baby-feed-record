@@ -7,6 +7,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,11 +23,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.coerceAtLeast
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.baby.data.BabyProfileManager
+import com.example.baby.util.DateUtils
 import android.graphics.Paint
-import android.graphics.Rect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,6 +38,16 @@ fun StatsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val profile = remember { BabyProfileManager.getProfile(context) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = uiState.selectedDateMillis
+    )
+
+    // Compute date range label for the 7-day view
+    val selectedDayStart = DateUtils.getDayStart(uiState.selectedDateMillis)
+    val rangeStartStr = DateUtils.formatDate(selectedDayStart - 6 * 86400000L)
+    val rangeEndStr = DateUtils.formatDate(selectedDayStart)
+    val rangeLabel = "$rangeStartStr - $rangeEndStr"
 
     Scaffold(
         topBar = {
@@ -96,6 +107,34 @@ fun StatsScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
+            // Date selector for 7-day window
+            Surface(
+                onClick = { showDatePicker = true },
+                shape = RoundedCornerShape(4.dp),
+                color = Color.Transparent,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = DateUtils.formatFullDate(uiState.selectedDateMillis),
+                    onValueChange = {},
+                    label = { Text("选择参考日期") },
+                    enabled = false,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    trailingIcon = {
+                        Icon(Icons.Default.DateRange, contentDescription = "选择日期")
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             // Daily summary cards
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -119,7 +158,7 @@ fun StatsScreen(
 
             // Daily bar chart
             Text(
-                "最近7天喂养量",
+                "$rangeLabel 喂养趋势",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -151,7 +190,7 @@ fun StatsScreen(
 
             // Daily trend
             Text(
-                "最近7天明细",
+                "$rangeLabel 明细",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -162,6 +201,29 @@ fun StatsScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        viewModel.selectDate(millis)
+                    }
+                    showDatePicker = false
+                }) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("取消")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }
