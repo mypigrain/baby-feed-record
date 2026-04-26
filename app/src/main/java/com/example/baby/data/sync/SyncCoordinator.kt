@@ -17,7 +17,9 @@ import org.json.JSONObject
 class SyncCoordinator(
     private val dao: FeedingDao,
     private val lifecycleOwner: LifecycleOwner,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val babyName: String,
+    private val babyBirthDate: String
 ) : LifecycleEventObserver {
 
     private val syncManager = SyncManager(dao)
@@ -54,10 +56,14 @@ class SyncCoordinator(
         serverPort = networkManager.startServer()
         Log.d(tag, "Sync server started on port $serverPort")
 
-        // Start discovery listener (responds to UDP broadcasts)
-        networkManager.startDiscoveryListener { peer ->
-            Log.d(tag, "Discovered peer: ${peer.deviceName} at ${peer.ip}:${peer.port}")
-        }
+        // Start discovery listener (responds to UDP broadcasts with baby info)
+        networkManager.startDiscoveryListener(
+            onPeerFound = { peer ->
+                Log.d(tag, "Discovered peer: ${peer.deviceName} at ${peer.ip}:${peer.port}")
+            },
+            babyName = babyName,
+            babyBirthDate = babyBirthDate
+        )
 
         // Accept incoming sync requests
         networkManager.acceptSyncRequest { reader, writer ->
@@ -73,7 +79,11 @@ class SyncCoordinator(
                 }
 
                 try {
-                    val peers = networkManager.discoverPeers(timeoutMs = 2000)
+                    val peers = networkManager.discoverPeers(
+                        timeoutMs = 2000,
+                        babyName = babyName,
+                        babyBirthDate = babyBirthDate
+                    )
                     Log.d(tag, "Discovered ${peers.size} peer(s) during scan")
 
                     for (peer in peers) {
@@ -110,6 +120,8 @@ class SyncCoordinator(
             put("type", "sync")
             put("port", serverPort)
             put("deviceName", "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+            put("babyName", babyName)
+            put("babyBirthDate", babyBirthDate)
             put("records", localObj.getJSONArray("records"))
             if (localObj.has("deletedSyncIds")) {
                 put("deletedSyncIds", localObj.getJSONArray("deletedSyncIds"))
@@ -139,6 +151,19 @@ class SyncCoordinator(
         try {
             val remoteJson = reader.readLine() ?: return
 
+            // Verify baby info matches at the TCP level too
+            val root = JSONObject(remoteJson)
+            val peerBabyName = root.optString("babyName", "")
+            val peerBabyBirthDate = root.optString("babyBirthDate", "")
+            if (peerBabyName != babyName || peerBabyBirthDate != babyBirthDate) {
+                Log.w(tag, "Rejected sync from mismatched baby: $peerBabyName/$peerBabyBirthDate")
+                writer.println(JSONObject().apply {
+                    put("type", "sync_response")
+                    put("error", "baby_mismatch")
+                }.toString())
+                return
+            }
+
             // SyncManager runs on IO but we're already on a background thread
             kotlinx.coroutines.runBlocking {
                 // Export our records BEFORE importing (to send only pre-existing records)
@@ -146,7 +171,6 @@ class SyncCoordinator(
                 val ourObj = JSONObject(ourRecords)
 
                 // Import peer's records
-                val root = JSONObject(remoteJson)
                 val peerRecords = root.optJSONArray("records")
                 val peerDeleted = root.optJSONArray("deletedSyncIds")
                 val payload = JSONObject().apply {

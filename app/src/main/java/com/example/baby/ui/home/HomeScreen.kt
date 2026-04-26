@@ -23,6 +23,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.baby.data.BabyProfileManager
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,8 +52,10 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = {
+                    val context = LocalContext.current
+                    val profile = remember { BabyProfileManager.getProfile(context) }
                     Text(
-                        "宝宝喝奶",
+                        if (profile != null) "${profile.name} 喝奶" else "宝宝喝奶",
                         fontWeight = FontWeight.Bold
                     )
                 },

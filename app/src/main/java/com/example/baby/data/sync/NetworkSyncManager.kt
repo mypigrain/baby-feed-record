@@ -15,7 +15,9 @@ import java.net.SocketTimeoutException
 data class DiscoveredPeer(
     val ip: String,
     val port: Int,
-    val deviceName: String
+    val deviceName: String,
+    val babyName: String = "",
+    val babyBirthDate: String = ""
 )
 
 class NetworkSyncManager(
@@ -64,7 +66,11 @@ class NetworkSyncManager(
         }.apply { isDaemon = true }.start()
     }
 
-    fun discoverPeers(timeoutMs: Int = 3000): List<DiscoveredPeer> {
+    fun discoverPeers(
+        timeoutMs: Int = 3000,
+        babyName: String = "",
+        babyBirthDate: String = ""
+    ): List<DiscoveredPeer> {
         val peers = mutableListOf<DiscoveredPeer>()
         val broadcastAddr = "255.255.255.255"
         val deviceName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
@@ -80,6 +86,8 @@ class NetworkSyncManager(
             val discoverMsg = JSONObject().apply {
                 put("type", "discover")
                 put("deviceName", deviceName)
+                put("babyName", babyName)
+                put("babyBirthDate", babyBirthDate)
             }.toString()
 
             val sendBuf = discoverMsg.toByteArray(Charsets.UTF_8)
@@ -102,11 +110,18 @@ class NetworkSyncManager(
                     if (peerIp == localIp) continue
 
                     if (obj.optString("type") == "discover_response") {
-                        peers.add(DiscoveredPeer(
-                            ip = peerIp,
-                            port = obj.optInt("port", 0),
-                            deviceName = obj.optString("deviceName", "Unknown")
-                        ))
+                        val peerBabyName = obj.optString("babyName", "")
+                        val peerBabyBirthDate = obj.optString("babyBirthDate", "")
+                        // Only sync with devices that have the same baby info
+                        if (peerBabyName == babyName && peerBabyBirthDate == babyBirthDate) {
+                            peers.add(DiscoveredPeer(
+                                ip = peerIp,
+                                port = obj.optInt("port", 0),
+                                deviceName = obj.optString("deviceName", "Unknown"),
+                                babyName = peerBabyName,
+                                babyBirthDate = peerBabyBirthDate
+                            ))
+                        }
                     }
                 } catch (_: SocketTimeoutException) {
                     break
@@ -118,7 +133,11 @@ class NetworkSyncManager(
         return peers.distinctBy { it.ip }
     }
 
-    fun startDiscoveryListener(onPeerFound: (DiscoveredPeer) -> Unit) {
+    fun startDiscoveryListener(
+        onPeerFound: (DiscoveredPeer) -> Unit,
+        babyName: String = "",
+        babyBirthDate: String = ""
+    ) {
         val deviceName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
         Thread {
             try {
@@ -137,11 +156,20 @@ class NetworkSyncManager(
 
                         if (obj.optString("type") == "discover" && peerIp != localIp) {
                             val serverPort = serverSocket?.localPort ?: 0
-                            if (serverPort > 0) {
+                            // Only respond if baby info matches
+                            val peerBabyName = obj.optString("babyName", "")
+                            val peerBabyBirthDate = obj.optString("babyBirthDate", "")
+                            val babyMatch = babyName.isNotEmpty() &&
+                                    peerBabyName == babyName &&
+                                    peerBabyBirthDate == babyBirthDate
+
+                            if (serverPort > 0 && babyMatch) {
                                 val response = JSONObject().apply {
                                     put("type", "discover_response")
                                     put("deviceName", deviceName)
                                     put("port", serverPort)
+                                    put("babyName", babyName)
+                                    put("babyBirthDate", babyBirthDate)
                                 }.toString()
 
                                 val respBuf = response.toByteArray(Charsets.UTF_8)
@@ -155,7 +183,9 @@ class NetworkSyncManager(
                             val discovered = DiscoveredPeer(
                                 ip = peerIp,
                                 port = obj.optInt("port", 0),
-                                deviceName = obj.optString("deviceName", "Unknown")
+                                deviceName = obj.optString("deviceName", "Unknown"),
+                                babyName = peerBabyName,
+                                babyBirthDate = peerBabyBirthDate
                             )
                             onPeerFound(discovered)
                         }

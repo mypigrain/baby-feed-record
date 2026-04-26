@@ -12,15 +12,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.baby.data.BabyProfileManager
 import com.example.baby.ui.donate.DonateScreen
 import com.example.baby.ui.history.HistoryScreen
 import com.example.baby.ui.home.HomeScreen
+import com.example.baby.ui.setup.BabySetupScreen
 import com.example.baby.ui.stats.StatsScreen
 
 sealed class Screen(
@@ -36,7 +39,22 @@ sealed class Screen(
 val bottomNavItems = listOf(Screen.Home, Screen.History, Screen.Stats)
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(
+    onProfileReady: (() -> Unit)? = null
+) {
+    val context = LocalContext.current
+    var showSetup by remember { mutableStateOf(BabyProfileManager.getProfile(context) == null) }
+
+    if (showSetup) {
+        BabySetupScreen(
+            onComplete = {
+                showSetup = false
+                onProfileReady?.invoke()
+            }
+        )
+        return
+    }
+
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
